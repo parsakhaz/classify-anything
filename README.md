@@ -1,8 +1,10 @@
-# Classify Anything with AI
+# Image Classification with Moondream and LLaMA
 
 > **⚠️ IMPORTANT:** This project currently uses Moondream 2B (2025-01-09 release) via the Hugging Face Transformers library. We will migrate to the official Moondream client libraries once they become available for this version.
 >
 > **⚠️ NOTE:** This project requires access to Meta's LLaMA 3.2 3B Instruct model via HuggingFace. You must request and be granted access before using this script. Visit [meta-llama/Llama-3.2-3B-Instruct](https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct) to request access.
+>
+> **⚠️ AUTHENTICATION:** When using HuggingFace authentication, make sure to use a token with "WRITE" permission, not "FINEGRAINED" permission. If you encounter authorization issues despite having model access, generate a new token with "WRITE" permission.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -91,6 +93,19 @@ Result: A winding path lined with trees
    .\venv\Scripts\activate  # Windows
    ```
 
+### System Dependencies
+```bash
+# Linux/Ubuntu
+sudo apt-get update
+sudo apt-get install libvips libvips-dev
+
+# macOS with Homebrew
+brew install vips
+
+# Windows
+# Download and install libvips from https://github.com/libvips/build-win64/releases
+```
+
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
@@ -147,6 +162,8 @@ The script provides:
    - Verify HuggingFace authentication
    - Check LLaMA model access status
    - Update transformers library
+   - **Important**: Use a HuggingFace token with "WRITE" permission, not "FINEGRAINED" permission
+   - If you encounter authorization issues despite having model access, try generating a new token with "WRITE" permission
 
 ## Performance Notes
 - Processing time depends on:

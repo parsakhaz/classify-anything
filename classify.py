@@ -4,24 +4,79 @@ from PIL import Image
 from transformers import AutoModelForCausalLM, pipeline
 import os, gc, glob
 from typing import List
+from huggingface_hub import login, whoami
 
 torch.cuda.empty_cache()
 gc.collect()
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 
+def setup_authentication(token: str = None):
+    """Setup HuggingFace authentication either via web UI or token."""
+    print("\nChecking HuggingFace authentication...")
+    print("This is required to access the LLaMA model for narrative generation.")
+    print("Note: You must have been granted access to Meta's LLaMA model.")
+    print("      If you haven't requested access yet, visit:")
+    print("      https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct")
+    
+    try:
+        if token:
+            print("Using provided HuggingFace token...")
+            login(token=token)
+        else:
+            try:
+                # Try to get existing login
+                user_info = whoami()
+                print(f"Found existing login as: {user_info['name']} ({user_info['email']})")
+                return True  # Successfully authenticated
+            except Exception:
+                print("\nNo existing login found. You can:")
+                print("1. Pre-authenticate using the command line:")
+                print("   $ huggingface-cli login")
+                print("2. Run this script with a token:")
+                print("   $ python classify.py --token YOUR_TOKEN")
+                print("\nPlease authenticate using one of these methods and try again.")
+                return False
+        
+        # Verify authentication
+        user_info = whoami()
+        print(f"\nSuccessfully authenticated as: {user_info['name']} ({user_info['email']})")
+        return True
+        
+    except Exception as e:
+        print("\nAuthentication Error:")
+        print("Make sure you have:")
+        print("1. A HuggingFace account")
+        print("2. Requested and been granted access to Meta's LLaMA model")
+        print("   Visit: https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct")
+        print("   Note: The approval process may take several days")
+        print("3. Either:")
+        print("   - Run 'huggingface-cli login' in your terminal")
+        print("   - Provide a valid token with --token")
+        
+        if "Cannot access gated repo" in str(e) or "awaiting a review" in str(e):
+            print("\nError: You don't have access to the LLaMA model yet.")
+            print("Please request access and wait for approval before using this script.")
+        else:
+            print("\nError details:", str(e))
+        return False
+
 def load_moondream():
     """Load Moondream model."""
     if torch.cuda.is_available(): torch.cuda.empty_cache()
     gc.collect()
-    return AutoModelForCausalLM.from_pretrained("vikhyatk/moondream2", revision="2025-01-09", 
-        trust_remote_code=True, torch_dtype=torch.float16, low_cpu_mem_usage=True).cuda()
+    return AutoModelForCausalLM.from_pretrained(
+        "vikhyatk/moondream2",
+        revision="2025-01-09", 
+        trust_remote_code=True,
+        device_map={"": "cuda"}
+    )
 
 def load_llama():
     """Load LLaMA model."""
     if torch.cuda.is_available(): torch.cuda.empty_cache()
     gc.collect()
-    return pipeline("text-generation", model="meta-llama/Llama-3.2-3B-Instruct", 
-        torch_dtype=torch.bfloat16, device_map="auto")
+    return pipeline("text-generation", model="meta-llama/Llama-3.2-1B-Instruct",
+        torch_dtype=torch.float16, device_map="auto", trust_remote_code=True)
 
 def create_questions(llm, things_to_classify: List[str]) -> List[str]:
     """Create all questions at once."""
@@ -79,6 +134,16 @@ def classify_batch(file_path: str, things_to_classify: List[str]):
         gc.collect()
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description='Classify images using Moondream and LLaMA')
+    parser.add_argument('--token', type=str, help='Optional: HuggingFace token for authentication')
+    args = parser.parse_args()
+
+    # Setup authentication before loading models
+    if not setup_authentication(args.token):
+        print("\nAuthentication failed. Please fix authentication issues before continuing.")
+        return
+
     inputs_dir = "inputs"
     os.makedirs(inputs_dir, exist_ok=True)
     
