@@ -5,10 +5,165 @@ from transformers import AutoModelForCausalLM, pipeline
 import os, gc, glob
 from typing import List
 from huggingface_hub import login, whoami
+import requests
+import subprocess
+import platform
+import time
+import json
+import tempfile
+import shutil
 
 torch.cuda.empty_cache()
 gc.collect()
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
+class OllamaWrapper:
+    def __call__(self, messages, **kwargs):
+        prompt = messages[1]["content"]  # Get user content from messages
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "llama3.2:1b",
+                "prompt": prompt,
+                "stream": False
+            }
+        )
+        return [{"generated_text": [{
+            "role": "assistant",
+            "content": response.json()["response"]
+        }]}]
+
+def get_os_type():
+    """Determine the OS type."""
+    system = platform.system().lower()
+    if system == "darwin": return "mac"
+    elif system == "windows": return "windows"
+    else: return "linux"
+
+def install_ollama():
+    """Install Ollama based on the OS."""
+    os_type = get_os_type()
+    print(f"\nDetected OS: {os_type.capitalize()}")
+    print("Attempting to install Ollama...")
+
+    try:
+        if os_type == "mac":
+            try:
+                subprocess.run(["brew", "--version"], check=True, capture_output=True)
+            except:
+                print("Homebrew not found. Installing Homebrew...")
+                subprocess.run(['/bin/bash', '-c', '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)'])
+            print("Installing Ollama via Homebrew...")
+            subprocess.run(["brew", "install", "ollama"])
+
+        elif os_type == "linux":
+            print("Installing Ollama via curl...")
+            install_cmd = 'curl https://ollama.ai/install.sh | sh'
+            subprocess.run(install_cmd, shell=True, check=True)
+
+        elif os_type == "windows":
+            print("Downloading Ollama installer...")
+            temp_dir = tempfile.mkdtemp()
+            installer_path = os.path.join(temp_dir, "ollama-installer.msi")
+            
+            response = requests.get("https://ollama.ai/download/windows", stream=True)
+            with open(installer_path, 'wb') as f:
+                shutil.copyfileobj(response.raw, f)
+
+            print("Installing Ollama...")
+            subprocess.run(['msiexec', '/i', installer_path, '/quiet'], check=True)
+            shutil.rmtree(temp_dir)
+
+        print("Ollama installation completed!")
+        
+    except Exception as e:
+        print(f"\nError installing Ollama: {str(e)}")
+        print("\nPlease install Ollama manually:")
+        print("1. Visit https://ollama.ai")
+        print("2. Download and install the appropriate version for your OS")
+        print("3. Run the script again after installation")
+        raise Exception("Ollama installation failed")
+
+def start_ollama_service():
+    """Start the Ollama service based on OS."""
+    os_type = get_os_type()
+    
+    try:
+        if os_type == "windows":
+            try:
+                requests.get("http://localhost:11434/api/tags")
+                return
+            except:
+                subprocess.Popen(['ollama', 'serve'], 
+                               creationflags=subprocess.CREATE_NEW_CONSOLE)
+        else:  # Linux and Mac
+            try:
+                requests.get("http://localhost:11434/api/tags")
+                return
+            except:
+                subprocess.Popen(['ollama', 'serve'])
+        
+        print("Starting Ollama service...")
+        max_retries = 10
+        for i in range(max_retries):
+            try:
+                requests.get("http://localhost:11434/api/tags")
+                print("Ollama service started successfully!")
+                return
+            except:
+                if i < max_retries - 1:
+                    print(f"Waiting for service to start... ({i+1}/{max_retries})")
+                    time.sleep(2)
+                else:
+                    raise Exception("Service failed to start")
+                
+    except Exception as e:
+        print(f"\nError starting Ollama service: {str(e)}")
+        print("Please start Ollama manually and try again")
+        raise
+
+def pull_llama_model():
+    """Pull the LLaMA model in Ollama."""
+    print("\nPulling LLaMA model...")
+    try:
+        subprocess.run(['ollama', 'pull', 'llama3.2:1b'], check=True)
+        print("LLaMA model pulled successfully!")
+    except Exception as e:
+        print(f"\nError pulling LLaMA model: {str(e)}")
+        raise
+
+def setup_ollama():
+    """Setup and verify Ollama LLaMA."""
+    print("\nChecking Ollama setup...")
+    
+    try:
+        subprocess.run(['ollama', '--version'], capture_output=True, check=True)
+    except:
+        install_ollama()
+    
+    start_ollama_service()
+    
+    response = requests.get("http://localhost:11434/api/tags")
+    if response.status_code == 200:
+        models = response.json()
+        if not any(model["name"].startswith("llama3.2:1b") for model in models["models"]):
+            pull_llama_model()
+    else:
+        pull_llama_model()
+    
+    print("Ollama LLaMA model ready!")
+
+def get_model_choice():
+    """Let user choose between HuggingFace and Ollama LLaMA."""
+    print("\nChoose LLaMA model source:")
+    print("1. Local Ollama LLaMA (Recommended, requires Ollama installed)")
+    print("2. HuggingFace LLaMA (Requires approved access)")
+    
+    while True:
+        choice = input("\nEnter choice (1 or 2): ").strip()
+        if choice in ['1', '2']:
+            return choice
+        print("Invalid choice. Please enter 1 or 2.")
 
 def setup_authentication(token: str = None):
     """Setup HuggingFace authentication either via web UI or token."""
@@ -71,12 +226,16 @@ def load_moondream():
         device_map={"": "cuda"}
     )
 
-def load_llama():
+def load_llama(use_ollama: bool = False):
     """Load LLaMA model."""
     if torch.cuda.is_available(): torch.cuda.empty_cache()
     gc.collect()
-    return pipeline("text-generation", model="meta-llama/Llama-3.2-1B-Instruct",
-        torch_dtype=torch.float16, device_map="auto", trust_remote_code=True)
+    
+    if use_ollama:
+        return OllamaWrapper()
+    else:
+        return pipeline("text-generation", model="meta-llama/Llama-3.2-1B-Instruct",
+            torch_dtype=torch.float16, device_map="auto", trust_remote_code=True)
 
 def create_questions(llm, things_to_classify: List[str]) -> List[str]:
     """Create all questions at once."""
@@ -84,30 +243,48 @@ def create_questions(llm, things_to_classify: List[str]) -> List[str]:
     questions = []
     for thing in things_to_classify:
         print("Input prompt:", thing)
-        response = llm([{
-            "role": "system", 
-            "content": """You format inputs into clear questions for an image model. Output ONLY the question, with no additional text or explanations. For example:
+        if isinstance(llm, OllamaWrapper):
+            # Extremely simple prompt for Ollama 1B model
+            response = llm([{
+                "role": "system",
+                "content": "Format a input into a short, simple question for an image model. You return a question to further classify the image. No extra text."
+            }, {
+                "role": "user",
+                "content": "here is the input, format it into a question: " + thing
+            }], max_new_tokens=32, do_sample=True, temperature=0.1)
+        else:
+            # Full prompt for HuggingFace model
+            response = llm([{
+                "role": "system", 
+                "content": """You format inputs into clear questions for an image model. Output ONLY the question, with no additional text or explanations. For example:
 Input: "grass color"
 Output: "What is the color of the grass?"
 
 Keep questions focused and direct. Do not include any other text besides the question itself."""
-        }, {
-            "role": "user",
-            "content": f"i am trying to understand the following thing about an image: {thing}. respond with a question only."
-        }], max_new_tokens=256, do_sample=True, temperature=0.7, pad_token_id=2)
-        question = response[0]["generated_text"][-1]["content"].strip() + " Answer concisely, in a few words."
+            }, {
+                "role": "user",
+                "content": f"i am trying to understand the following thing about an image: {thing}. respond with a question only."
+            }], max_new_tokens=256, do_sample=True, temperature=0.7, pad_token_id=2)
+        
+        question = response[0]["generated_text"][-1]["content"].strip()
+        if isinstance(llm, OllamaWrapper):
+            # Clean up Ollama response if needed
+            question = question.replace("Question:", "").strip()
+            if not question.endswith("?"):
+                question += "?"
+        question += " Answer concisely, in a few words."
         questions.append(question)
         print(f"Generated question for '{thing}': {question}")
     return questions
 
-def classify_batch(file_path: str, things_to_classify: List[str]):
+def classify_batch(file_path: str, things_to_classify: List[str], use_ollama: bool = False):
     """Classify multiple aspects of an image."""
     if file_path.split(".")[-1].lower() not in ["jpg", "jpeg", "png", "bmp", "tiff"]:
         raise ValueError("File type not supported. Only images are supported.")
     
     try:
         print("\nLoading LLaMA to generate questions...")
-        llm = load_llama()
+        llm = load_llama(use_ollama)
         questions = create_questions(llm, things_to_classify)
         
         print("\nUnloading LLaMA and loading Moondream...")
@@ -139,10 +316,17 @@ def main():
     parser.add_argument('--token', type=str, help='Optional: HuggingFace token for authentication')
     args = parser.parse_args()
 
-    # Setup authentication before loading models
-    if not setup_authentication(args.token):
-        print("\nAuthentication failed. Please fix authentication issues before continuing.")
-        return
+    # Get model choice
+    model_choice = get_model_choice()
+    use_ollama = (model_choice == '1')
+    
+    # Setup authentication/Ollama
+    if use_ollama:
+        setup_ollama()
+    else:
+        if not setup_authentication(args.token):
+            print("\nAuthentication failed. Please fix authentication issues before continuing.")
+            return
 
     inputs_dir = "inputs"
     os.makedirs(inputs_dir, exist_ok=True)
@@ -164,7 +348,7 @@ def main():
         print(f"Processing: {os.path.basename(file_path)}")
         print("="*70)
         try:
-            results = classify_batch(file_path, things_to_classify)
+            results = classify_batch(file_path, things_to_classify, use_ollama)
             print("\nFinal Classification Results:")
             print("-"*30)
             for thing, result in results:
