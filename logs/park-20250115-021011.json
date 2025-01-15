@@ -1,0 +1,313 @@
+{
+  "timestamp": "2025-01-15T02:10:02.137635",
+  "file": "park.jpg",
+  "model": "huggingface",
+  "questions": [
+    {
+      "aspect": "grass color",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What color is the grass in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What color is the grass in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "time of day",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What time of day is this image in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What time of day is this image in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "number of people, if any",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What number of people are in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What number of people are in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "weather conditions",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What type of weather conditions are present in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What type of weather conditions are present in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "main activity",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What is the main activity in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What is the main activity in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "path condition",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What is the condition for the path in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What is the condition for the path in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "tree density",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What is the density of tree growth in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What is the density of tree growth in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "tree arrangement",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What type of tree arrangement is this in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What type of tree arrangement is this in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "tree foliage state",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What type of foliage is in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What type of foliage is in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "shadow intensity",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What is the shadow intensity in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What is the shadow intensity in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "terrain type",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What type of terrain is in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What type of terrain is in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "visible structures",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What visible structures are present in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What visible structures are present in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "sky visibility",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What is the visibility of the sky in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What is the visibility of the sky in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "season indicators",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What season indicators are present in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What season indicators are present in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "lighting quality",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What type of lighting quality is in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What type of lighting quality is in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "ground cover types",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What type of ground cover are you in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What type of ground cover are you in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "path curvature",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What is the curvature of the path in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What is the curvature of the path in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "landscape maintenance level",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What type of landscape maintenance is this image in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What type of landscape maintenance is this image in this image? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "natural features present",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What natural features are present in this image?",
+          "valid": true
+        }
+      ],
+      "final_question": "What natural features are present in this image? Answer concisely, in a few words."
+    }
+  ],
+  "results": [
+    {
+      "aspect": "grass color",
+      "question": "What color is the grass in this image? Answer concisely, in a few words.",
+      "answer": "Green"
+    },
+    {
+      "aspect": "time of day",
+      "question": "What time of day is this image in this image? Answer concisely, in a few words.",
+      "answer": "Afternoon"
+    },
+    {
+      "aspect": "number of people, if any",
+      "question": "What number of people are in this image? Answer concisely, in a few words.",
+      "answer": "0"
+    },
+    {
+      "aspect": "weather conditions",
+      "question": "What type of weather conditions are present in this image? Answer concisely, in a few words.",
+      "answer": "Sunny"
+    },
+    {
+      "aspect": "main activity",
+      "question": "What is the main activity in this image? Answer concisely, in a few words.",
+      "answer": "Walking"
+    },
+    {
+      "aspect": "path condition",
+      "question": "What is the condition for the path in this image? Answer concisely, in a few words.",
+      "answer": "Well-maintained"
+    },
+    {
+      "aspect": "tree density",
+      "question": "What is the density of tree growth in this image? Answer concisely, in a few words.",
+      "answer": "Dense"
+    },
+    {
+      "aspect": "tree arrangement",
+      "question": "What type of tree arrangement is this in this image? Answer concisely, in a few words.",
+      "answer": "Row"
+    },
+    {
+      "aspect": "tree foliage state",
+      "question": "What type of foliage is in this image? Answer concisely, in a few words.",
+      "answer": "Trees"
+    },
+    {
+      "aspect": "shadow intensity",
+      "question": "What is the shadow intensity in this image? Answer concisely, in a few words.",
+      "answer": "Moderate"
+    },
+    {
+      "aspect": "terrain type",
+      "question": "What type of terrain is in this image? Answer concisely, in a few words.",
+      "answer": "Pathway"
+    },
+    {
+      "aspect": "visible structures",
+      "question": "What visible structures are present in this image? Answer concisely, in a few words.",
+      "answer": "Houses"
+    },
+    {
+      "aspect": "sky visibility",
+      "question": "What is the visibility of the sky in this image? Answer concisely, in a few words.",
+      "answer": "Clear"
+    },
+    {
+      "aspect": "season indicators",
+      "question": "What season indicators are present in this image? Answer concisely, in a few words.",
+      "answer": "Autumn"
+    },
+    {
+      "aspect": "lighting quality",
+      "question": "What type of lighting quality is in this image? Answer concisely, in a few words.",
+      "answer": "Bright, natural"
+    },
+    {
+      "aspect": "ground cover types",
+      "question": "What type of ground cover are you in this image? Answer concisely, in a few words.",
+      "answer": "Grass"
+    },
+    {
+      "aspect": "path curvature",
+      "question": "What is the curvature of the path in this image? Answer concisely, in a few words.",
+      "answer": "Curved"
+    },
+    {
+      "aspect": "landscape maintenance level",
+      "question": "What type of landscape maintenance is this image in this image? Answer concisely, in a few words.",
+      "answer": "Regular pruning and leaf removal"
+    },
+    {
+      "aspect": "natural features present",
+      "question": "What natural features are present in this image? Answer concisely, in a few words.",
+      "answer": "Trees, grass, path"
+    }
+  ]
+}

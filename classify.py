@@ -12,6 +12,7 @@ import time
 import json
 import tempfile
 import shutil
+from datetime import datetime
 
 torch.cuda.empty_cache()
 gc.collect()
@@ -171,7 +172,7 @@ def setup_authentication(token: str = None):
     print("This is required to access the LLaMA model for narrative generation.")
     print("Note: You must have been granted access to Meta's LLaMA model.")
     print("      If you haven't requested access yet, visit:")
-    print("      https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct")
+    print("      https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct")
     
     try:
         if token:
@@ -202,7 +203,7 @@ def setup_authentication(token: str = None):
         print("Make sure you have:")
         print("1. A HuggingFace account")
         print("2. Requested and been granted access to Meta's LLaMA model")
-        print("   Visit: https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct")
+        print("   Visit: https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct")
         print("   Note: The approval process may take several days")
         print("3. Either:")
         print("   - Run 'huggingface-cli login' in your terminal")
@@ -237,10 +238,11 @@ def load_llama(use_ollama: bool = False):
         return pipeline("text-generation", model="meta-llama/Llama-3.2-1B-Instruct",
             torch_dtype=torch.float16, device_map="auto", trust_remote_code=True)
 
-def create_questions(llm, things_to_classify: List[str]) -> List[str]:
+def create_questions(llm, things_to_classify: List[str], run_log: dict) -> List[str]:
     """Create all questions at once."""
     print("\nFormulating questions using LLaMA...")
     questions = []
+    run_log["questions"] = []
     
     def is_valid_question(q: str) -> bool:
         """Check if the question is valid (no meta-language)."""
@@ -249,6 +251,11 @@ def create_questions(llm, things_to_classify: List[str]) -> List[str]:
     
     for thing in things_to_classify:
         print("Input prompt:", thing)
+        question_log = {
+            "aspect": thing,
+            "attempts": []
+        }
+        
         if isinstance(llm, OllamaWrapper):
             max_retries = 10
             attempt = 0
@@ -262,6 +269,13 @@ def create_questions(llm, things_to_classify: List[str]) -> List[str]:
                 }], max_new_tokens=32, do_sample=True, temperature=0.3)
                 
                 question = response[0]["generated_text"][-1]["content"].strip()
+                attempt_log = {
+                    "attempt": attempt + 1,
+                    "response": question,
+                    "valid": is_valid_question(question)
+                }
+                question_log["attempts"].append(attempt_log)
+                
                 if is_valid_question(question):
                     break
                 print(f"Retrying due to invalid response: {question}")
@@ -270,16 +284,17 @@ def create_questions(llm, things_to_classify: List[str]) -> List[str]:
             # Full prompt for HuggingFace model
             response = llm([{
                 "role": "system", 
-                "content": """You format inputs into clear questions for an image model. Output ONLY the question, with no additional text or explanations. For example:
-Input: "grass color"
-Output: "What is the color of the grass?"
-
-Keep questions focused and direct. Do not include any other text besides the question itself."""
+                "content": "Format a input into a short, simple question for an image model. You return a question to further classify the image. No extra text."
             }, {
                 "role": "user",
-                "content": f"i am trying to understand the following thing about an image: {thing}. respond with a question only."
-            }], max_new_tokens=256, do_sample=True, temperature=0.7, pad_token_id=2)
+                "content": "here is the input, format it into a question (starting with 'What' and ending with 'in this image'): " + thing
+            }], max_new_tokens=32, do_sample=True, temperature=0.3, pad_token_id=2)
             question = response[0]["generated_text"][-1]["content"].strip()
+            question_log["attempts"].append({
+                "attempt": 1,
+                "response": question,
+                "valid": True
+            })
         
         if isinstance(llm, OllamaWrapper):
             # Clean up Ollama response if needed
@@ -288,6 +303,8 @@ Keep questions focused and direct. Do not include any other text besides the que
                 question += "?"
         question += " Answer concisely, in a few words."
         questions.append(question)
+        question_log["final_question"] = question
+        run_log["questions"].append(question_log)
         print(f"Generated question for '{thing}': {question}")
     return questions
 
@@ -296,10 +313,18 @@ def classify_batch(file_path: str, things_to_classify: List[str], use_ollama: bo
     if file_path.split(".")[-1].lower() not in ["jpg", "jpeg", "png", "bmp", "tiff"]:
         raise ValueError("File type not supported. Only images are supported.")
     
+    run_log = {
+        "timestamp": datetime.now().isoformat(),
+        "file": os.path.basename(file_path),
+        "model": "ollama" if use_ollama else "huggingface",
+        "questions": [],
+        "results": []
+    }
+    
     try:
         print("\nLoading LLaMA to generate questions...")
         llm = load_llama(use_ollama)
-        questions = create_questions(llm, things_to_classify)
+        questions = create_questions(llm, things_to_classify, run_log)
         
         print("\nUnloading LLaMA and loading Moondream...")
         del llm
@@ -313,9 +338,23 @@ def classify_batch(file_path: str, things_to_classify: List[str], use_ollama: bo
         for thing, question in zip(things_to_classify, questions):
             print(f"\nProcessing aspect: {thing}")
             print(f"Question: {question}")
-            answer = moondream.query(pil_image, question)["answer"]
+            answer = moondream.query(pil_image, question)["answer"].strip()
+            result = {
+                "aspect": thing,
+                "question": question,
+                "answer": answer
+            }
             results.append((thing, answer))
+            run_log["results"].append(result)
             print(f"Answer: {answer}")
+            
+        # Save run log
+        os.makedirs("logs", exist_ok=True)
+        log_filename = f"logs/{os.path.splitext(os.path.basename(file_path))[0]}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+        with open(log_filename, 'w') as f:
+            json.dump(run_log, f, indent=2)
+        print(f"\nRun log saved to: {log_filename}")
+            
         return results
             
     finally:
@@ -354,8 +393,29 @@ def main():
         print("Supported formats: jpg, jpeg, png, bmp, tiff")
         return
     
-    things_to_classify = ["grass color", "time of day", "number of people, if any", 
-                         "weather conditions", "main activity"]
+    # things_to_classify = ["grass color", "time of day", "number of people, if any", 
+    #                     "weather conditions", "main activity"]
+    things_to_classify = [
+        "grass color",
+        "time of day",
+        "number of people, if any",
+        "weather conditions",
+        "main activity",
+        "path condition",
+        "tree density",
+        "tree arrangement",
+        "tree foliage state",
+        "shadow intensity",
+        "terrain type",
+        "visible structures",
+        "sky visibility",
+        "season indicators",
+        "lighting quality",
+        "ground cover types",
+        "path curvature",
+        "landscape maintenance level",
+        "natural features present"
+    ]
     
     for file_path in input_files:
         print("\n" + "="*70)
