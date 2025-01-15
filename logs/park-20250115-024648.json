@@ -1,0 +1,62 @@
+{
+  "timestamp": "2025-01-15T02:46:43.147898",
+  "file": "park.jpg",
+  "model": "ollama",
+  "questions": [
+    {
+      "aspect": "grass color",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What color is grass?",
+          "valid": true
+        }
+      ],
+      "final_question": "What color is grass? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "time of day",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What time of day are you?",
+          "valid": false
+        },
+        {
+          "attempt": 2,
+          "response": "What is the time of day?",
+          "valid": true
+        }
+      ],
+      "final_question": "What is the time of day? Answer concisely, in a few words."
+    },
+    {
+      "aspect": "weather conditions",
+      "attempts": [
+        {
+          "attempt": 1,
+          "response": "What are the current weather conditions?",
+          "valid": true
+        }
+      ],
+      "final_question": "What are the current weather conditions? Answer concisely, in a few words."
+    }
+  ],
+  "results": [
+    {
+      "aspect": "grass color",
+      "question": "What color is grass? Answer concisely, in a few words.",
+      "answer": "Green"
+    },
+    {
+      "aspect": "time of day",
+      "question": "What is the time of day? Answer concisely, in a few words.",
+      "answer": "Afternoon"
+    },
+    {
+      "aspect": "weather conditions",
+      "question": "What are the current weather conditions? Answer concisely, in a few words.",
+      "answer": "Sunny"
+    }
+  ]
+}

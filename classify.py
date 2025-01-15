@@ -245,9 +245,17 @@ def create_questions(llm, things_to_classify: List[str], run_log: dict) -> List[
     run_log["questions"] = []
     
     def is_valid_question(q: str) -> bool:
-        """Check if the question is valid (no meta-language)."""
+        """Check if the question is valid (no meta-language or yes/no questions)."""
+        # Check for meta-language words
         bad_words = ["format", "input", "answer", "help", "please", "typical", "you"]
-        return not any(word in q.lower() for word in bad_words)
+        if any(word in q.lower() for word in bad_words):
+            return False
+        
+        # Check for yes/no question patterns
+        if q.lower().strip().startswith(("is ", "are ", "can ", "does ", "do ", "will ", "should ")):
+            return False
+            
+        return True
     
     for thing in things_to_classify:
         print("Input prompt:", thing)
@@ -367,6 +375,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description='Classify images using Moondream and LLaMA')
     parser.add_argument('--token', type=str, help='Optional: HuggingFace token for authentication')
+    parser.add_argument('--aspects', type=str, help='Optional: Comma-separated list of aspects to classify (e.g., "grass color, time of day"). If not provided, will prompt for input.')
     args = parser.parse_args()
 
     # Get model choice
@@ -393,9 +402,8 @@ def main():
         print("Supported formats: jpg, jpeg, png, bmp, tiff")
         return
     
-    # things_to_classify = ["grass color", "time of day", "number of people, if any", 
-    #                     "weather conditions", "main activity"]
-    things_to_classify = [
+    # Default aspects that can be suggested to user
+    default_aspects = [
         "grass color",
         "time of day",
         "number of people, if any",
@@ -416,6 +424,44 @@ def main():
         "landscape maintenance level",
         "natural features present"
     ]
+    
+    if args.aspects:
+        things_to_classify = [aspect.strip() for aspect in args.aspects.split(",")]
+    else:
+        print("\nEnter aspects to classify (one per line).")
+        print("Press Enter twice when done.")
+        print("\nSuggested aspects you can use:")
+        for i, aspect in enumerate(default_aspects, 1):
+            print(f"{i}. {aspect}")
+        
+        print("\nEnter your aspects (or numbers from the list above):")
+        aspects = []
+        while True:
+            aspect = input().strip()
+            if not aspect:  # Empty line
+                if aspects:  # If we have some aspects, we're done
+                    break
+                else:  # No aspects entered, ask again
+                    print("Please enter at least one aspect to classify.")
+                    continue
+            
+            # Check if input is a number referring to default aspects
+            if aspect.isdigit():
+                idx = int(aspect) - 1
+                if 0 <= idx < len(default_aspects):
+                    aspects.append(default_aspects[idx])
+                    print(f"Added: {default_aspects[idx]}")
+                else:
+                    print(f"Invalid number. Please enter 1-{len(default_aspects)}")
+            else:
+                aspects.append(aspect)
+                print(f"Added custom aspect: {aspect}")
+        
+        things_to_classify = aspects
+    
+    print("\nClassifying the following aspects:")
+    for i, thing in enumerate(things_to_classify, 1):
+        print(f"{i}. {thing}")
     
     for file_path in input_files:
         print("\n" + "="*70)

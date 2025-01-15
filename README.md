@@ -198,19 +198,26 @@ brew install vips
 ### Command-Line Options
 ```bash
 --token     Optional: HuggingFace token for authentication
+--aspects   Optional: Comma-separated list of aspects to classify
+           If not provided, will prompt for interactive input
 ```
 
 ### Examples
 ```bash
-# Process all images in inputs directory
+# Process all images with interactive aspect selection
 python classify.py
 
-# [Future enhancement: Add examples with custom options]
+# Process images with specific aspects
+python classify.py --aspects "grass color, time of day, weather conditions"
+
+# Use HuggingFace with token and specific aspects
+python classify.py --token YOUR_TOKEN --aspects "tree density, lighting quality"
 ```
 
 ## Output
 The script provides:
 1. **Console Output**:
+   - Interactive aspect selection (if --aspects not provided)
    - Processing status for each image
    - Generated questions
    - Classification results
@@ -220,6 +227,13 @@ The script provides:
    - Aspect-by-aspect breakdown
    - Concise, clear answers
    - Structured presentation
+
+3. **JSON Logs**:
+   - Detailed run information
+   - All aspects classified
+   - Question generation attempts
+   - Final results
+   - Timestamps
 
 ## Troubleshooting
 1. CUDA/GPU Issues:
