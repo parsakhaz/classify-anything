@@ -241,17 +241,31 @@ def create_questions(llm, things_to_classify: List[str]) -> List[str]:
     """Create all questions at once."""
     print("\nFormulating questions using LLaMA...")
     questions = []
+    
+    def is_valid_question(q: str) -> bool:
+        """Check if the question is valid (no meta-language)."""
+        bad_words = ["format", "input", "answer", "help", "please", "typical", "you"]
+        return not any(word in q.lower() for word in bad_words)
+    
     for thing in things_to_classify:
         print("Input prompt:", thing)
         if isinstance(llm, OllamaWrapper):
-            # Extremely simple prompt for Ollama 1B model
-            response = llm([{
-                "role": "system",
-                "content": "Format a input into a short, simple question for an image model. You return a question to further classify the image. No extra text."
-            }, {
-                "role": "user",
-                "content": "here is the input, format it into a question: " + thing
-            }], max_new_tokens=32, do_sample=True, temperature=0.1)
+            max_retries = 10
+            attempt = 0
+            while attempt < max_retries:
+                response = llm([{
+                    "role": "system",
+                    "content": "Format a input into a short, simple question for an image model. You return a question to further classify the image. No extra text."
+                }, {
+                    "role": "user",
+                    "content": "here is the input, format it into a question: " + thing
+                }], max_new_tokens=32, do_sample=True, temperature=0.3)
+                
+                question = response[0]["generated_text"][-1]["content"].strip()
+                if is_valid_question(question):
+                    break
+                print(f"Retrying due to invalid response: {question}")
+                attempt += 1
         else:
             # Full prompt for HuggingFace model
             response = llm([{
@@ -265,8 +279,8 @@ Keep questions focused and direct. Do not include any other text besides the que
                 "role": "user",
                 "content": f"i am trying to understand the following thing about an image: {thing}. respond with a question only."
             }], max_new_tokens=256, do_sample=True, temperature=0.7, pad_token_id=2)
+            question = response[0]["generated_text"][-1]["content"].strip()
         
-        question = response[0]["generated_text"][-1]["content"].strip()
         if isinstance(llm, OllamaWrapper):
             # Clean up Ollama response if needed
             question = question.replace("Question:", "").strip()
